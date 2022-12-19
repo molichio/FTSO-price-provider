@@ -21,6 +21,18 @@ interface EventOptions {
   topics?: string[];
 }
 
+export type AllowedClaimRecipientsChanged = ContractEventLog<{
+  rewardOwner: string;
+  recipients: string[];
+  0: string;
+  1: string[];
+}>;
+export type ClaimExecutorsChanged = ContractEventLog<{
+  rewardOwner: string;
+  executors: string[];
+  0: string;
+  1: string[];
+}>;
 export type DailyAuthorizedInflationSet = ContractEventLog<{
   authorizedAmountWei: string;
   0: string;
@@ -33,15 +45,21 @@ export type FeePercentageChanged = ContractEventLog<{
   1: string;
   2: string;
 }>;
-export type GovernanceProposed = ContractEventLog<{
-  proposedGovernance: string;
-  0: string;
-}>;
-export type GovernanceUpdated = ContractEventLog<{
-  oldGovernance: string;
-  newGoveranance: string;
+export type GovernanceCallTimelocked = ContractEventLog<{
+  selector: string;
+  allowedAfterTimestamp: string;
+  encodedCall: string;
   0: string;
   1: string;
+  2: string;
+}>;
+export type GovernanceInitialised = ContractEventLog<{
+  initialGovernance: string;
+  0: string;
+}>;
+export type GovernedProductionModeEntered = ContractEventLog<{
+  governanceSettings: string;
+  0: string;
 }>;
 export type InflationReceived = ContractEventLog<{
   amountReceivedWei: string;
@@ -58,6 +76,10 @@ export type RewardClaimed = ContractEventLog<{
   2: string;
   3: string;
   4: string;
+}>;
+export type RewardClaimsEnabled = ContractEventLog<{
+  rewardEpochId: string;
+  0: string;
 }>;
 export type RewardClaimsExpired = ContractEventLog<{
   rewardEpochId: string;
@@ -77,6 +99,18 @@ export type RewardsDistributed = ContractEventLog<{
   2: string[];
   3: string[];
 }>;
+export type TimelockedGovernanceCallCanceled = ContractEventLog<{
+  selector: string;
+  timestamp: string;
+  0: string;
+  1: string;
+}>;
+export type TimelockedGovernanceCallExecuted = ContractEventLog<{
+  selector: string;
+  timestamp: string;
+  0: string;
+  1: string;
+}>;
 export type UnearnedRewardsAccrued = ContractEventLog<{
   epochId: string;
   reward: string;
@@ -92,45 +126,62 @@ export interface FtsoRewardManager extends BaseContract {
   ): FtsoRewardManager;
   clone(): FtsoRewardManager;
   methods: {
-    accrueUnearnedRewards(
-      _epochId: number | string | BN,
-      _priceEpochDurationSeconds: number | string | BN,
-      _priceEpochEndTime: number | string | BN
-    ): NonPayableTransactionObject<void>;
-
-    activate(): NonPayableTransactionObject<void>;
-
     active(): NonPayableTransactionObject<boolean>;
 
-    addClaimExecutor(_executor: string): NonPayableTransactionObject<void>;
+    cancelGovernanceCall(
+      _selector: string | number[]
+    ): NonPayableTransactionObject<void>;
 
-    claimAndWrapReward(
-      _recipient: string,
-      _rewardEpochs: (number | string | BN)[]
-    ): NonPayableTransactionObject<string>;
+    delegationAccountManager(): NonPayableTransactionObject<string>;
 
-    claimAndWrapRewardFromDataProviders(
-      _recipient: string,
-      _rewardEpochs: (number | string | BN)[],
-      _dataProviders: string[]
-    ): NonPayableTransactionObject<string>;
+    executeGovernanceCall(
+      _selector: string | number[]
+    ): NonPayableTransactionObject<void>;
 
-    claimAndWrapRewardFromDataProvidersToOwner(
-      _rewardOwner: string,
-      _rewardEpochs: (number | string | BN)[],
-      _dataProviders: string[]
-    ): NonPayableTransactionObject<string>;
+    firstClaimableRewardEpoch(): NonPayableTransactionObject<string>;
 
-    claimAndWrapRewardToOwner(
-      _rewardOwner: string,
-      _rewardEpochs: (number | string | BN)[]
-    ): NonPayableTransactionObject<string>;
+    ftsoManager(): NonPayableTransactionObject<string>;
 
-    claimGovernance(): NonPayableTransactionObject<void>;
+    getAddressUpdater(): NonPayableTransactionObject<string>;
+
+    governance(): NonPayableTransactionObject<string>;
+
+    governanceSettings(): NonPayableTransactionObject<string>;
+
+    initialise(_initialGovernance: string): NonPayableTransactionObject<void>;
+
+    newFtsoRewardManager(): NonPayableTransactionObject<string>;
+
+    oldFtsoRewardManager(): NonPayableTransactionObject<string>;
+
+    productionMode(): NonPayableTransactionObject<boolean>;
+
+    switchToProductionMode(): NonPayableTransactionObject<void>;
+
+    timelockedCalls(arg0: string | number[]): NonPayableTransactionObject<{
+      allowedAfterTimestamp: string;
+      encodedCall: string;
+      0: string;
+      1: string;
+    }>;
+
+    updateContractAddresses(
+      _contractNameHashes: (string | number[])[],
+      _contractAddresses: string[]
+    ): NonPayableTransactionObject<void>;
+
+    wNat(): NonPayableTransactionObject<string>;
 
     claimReward(
       _recipient: string,
       _rewardEpochs: (number | string | BN)[]
+    ): NonPayableTransactionObject<string>;
+
+    claim(
+      _rewardOwner: string,
+      _recipient: string,
+      _rewardEpochs: (number | string | BN)[],
+      _wrap: boolean
     ): NonPayableTransactionObject<string>;
 
     claimRewardFromDataProviders(
@@ -139,15 +190,37 @@ export interface FtsoRewardManager extends BaseContract {
       _dataProviders: string[]
     ): NonPayableTransactionObject<string>;
 
-    closeExpiredRewardEpoch(
-      _rewardEpoch: number | string | BN
+    claimFromDataProviders(
+      _rewardOwner: string,
+      _recipient: string,
+      _rewardEpochs: (number | string | BN)[],
+      _dataProviders: string[],
+      _wrap: boolean
+    ): NonPayableTransactionObject<string>;
+
+    setClaimExecutors(_executors: string[]): NonPayableTransactionObject<void>;
+
+    setAllowedClaimRecipients(
+      _recipients: string[]
     ): NonPayableTransactionObject<void>;
 
-    dailyAuthorizedInflation(): NonPayableTransactionObject<string>;
+    activate(): NonPayableTransactionObject<void>;
+
+    enableClaims(): NonPayableTransactionObject<void>;
 
     deactivate(): NonPayableTransactionObject<void>;
 
-    defaultFeePercentage(): NonPayableTransactionObject<string>;
+    setDailyAuthorizedInflation(
+      _toAuthorizeWei: number | string | BN
+    ): NonPayableTransactionObject<void>;
+
+    receiveInflation(): PayableTransactionObject<void>;
+
+    accrueUnearnedRewards(
+      _epochId: number | string | BN,
+      _priceEpochDurationSeconds: number | string | BN,
+      _priceEpochEndTime: number | string | BN
+    ): NonPayableTransactionObject<void>;
 
     distributeRewards(
       _addresses: string[],
@@ -161,46 +234,19 @@ export interface FtsoRewardManager extends BaseContract {
       _votePowerBlock: number | string | BN
     ): NonPayableTransactionObject<void>;
 
-    feePercentageUpdateOffset(): NonPayableTransactionObject<string>;
-
-    ftsoManager(): NonPayableTransactionObject<string>;
-
-    getAddressUpdater(): NonPayableTransactionObject<string>;
-
-    getClaimedReward(
-      _rewardEpoch: number | string | BN,
-      _dataProvider: string,
-      _claimer: string
-    ): NonPayableTransactionObject<{
-      _claimed: boolean;
-      _amount: string;
-      0: boolean;
-      1: string;
-    }>;
-
-    getContractName(): NonPayableTransactionObject<string>;
-
-    getCurrentRewardEpoch(): NonPayableTransactionObject<string>;
-
-    getDataProviderCurrentFeePercentage(
-      _dataProvider: string
+    setDataProviderFeePercentage(
+      _feePercentageBIPS: number | string | BN
     ): NonPayableTransactionObject<string>;
 
-    getDataProviderFeePercentage(
-      _dataProvider: string,
+    setInitialRewardData(): NonPayableTransactionObject<void>;
+
+    setNewFtsoRewardManager(
+      _newFtsoRewardManager: string
+    ): NonPayableTransactionObject<void>;
+
+    closeExpiredRewardEpoch(
       _rewardEpoch: number | string | BN
-    ): NonPayableTransactionObject<string>;
-
-    getDataProviderScheduledFeePercentageChanges(
-      _dataProvider: string
-    ): NonPayableTransactionObject<{
-      _feePercentageBIPS: string[];
-      _validFromEpoch: string[];
-      _fixed: boolean[];
-      0: string[];
-      1: string[];
-      2: boolean[];
-    }>;
+    ): NonPayableTransactionObject<void>;
 
     getEpochReward(
       _rewardEpoch: number | string | BN
@@ -211,26 +257,7 @@ export interface FtsoRewardManager extends BaseContract {
       1: string;
     }>;
 
-    getEpochsWithClaimableRewards(): NonPayableTransactionObject<{
-      _startEpochId: string;
-      _endEpochId: string;
-      0: string;
-      1: string;
-    }>;
-
-    getEpochsWithUnclaimedRewards(
-      _beneficiary: string
-    ): NonPayableTransactionObject<string[]>;
-
     getInflationAddress(): NonPayableTransactionObject<string>;
-
-    getInitialRewardEpoch(): NonPayableTransactionObject<string>;
-
-    getRewardEpochToExpireNext(): NonPayableTransactionObject<string>;
-
-    getRewardEpochVotePowerBlock(
-      _rewardEpoch: number | string | BN
-    ): NonPayableTransactionObject<string>;
 
     getStateOfRewards(
       _beneficiary: string,
@@ -259,14 +286,16 @@ export interface FtsoRewardManager extends BaseContract {
       2: boolean;
     }>;
 
-    getTokenPoolSupplyData(): NonPayableTransactionObject<{
-      _lockedFundsWei: string;
-      _totalInflationAuthorizedWei: string;
-      _totalClaimedWei: string;
+    getEpochsWithClaimableRewards(): NonPayableTransactionObject<{
+      _startEpochId: string;
+      _endEpochId: string;
       0: string;
       1: string;
-      2: string;
     }>;
+
+    getEpochsWithUnclaimedRewards(
+      _beneficiary: string
+    ): NonPayableTransactionObject<string[]>;
 
     getUnclaimedReward(
       _rewardEpoch: number | string | BN,
@@ -278,66 +307,116 @@ export interface FtsoRewardManager extends BaseContract {
       1: string;
     }>;
 
-    governance(): NonPayableTransactionObject<string>;
+    getDataProviderPerformanceInfo(
+      _rewardEpoch: number | string | BN,
+      _dataProvider: string
+    ): NonPayableTransactionObject<{
+      _rewardAmount: string;
+      _votePowerIgnoringRevocation: string;
+      0: string;
+      1: string;
+    }>;
 
-    initialise(_governance: string): NonPayableTransactionObject<void>;
+    getClaimedReward(
+      _rewardEpoch: number | string | BN,
+      _dataProvider: string,
+      _claimer: string
+    ): NonPayableTransactionObject<{
+      _claimed: boolean;
+      _amount: string;
+      0: boolean;
+      1: string;
+    }>;
 
-    lastInflationAuthorizationReceivedTs(): NonPayableTransactionObject<string>;
-
-    newFtsoRewardManager(): NonPayableTransactionObject<string>;
-
-    oldFtsoRewardManager(): NonPayableTransactionObject<string>;
-
-    proposeGovernance(_governance: string): NonPayableTransactionObject<void>;
-
-    proposedGovernance(): NonPayableTransactionObject<string>;
-
-    receiveInflation(): PayableTransactionObject<void>;
-
-    removeClaimExecutor(_executor: string): NonPayableTransactionObject<void>;
-
-    setDailyAuthorizedInflation(
-      _toAuthorizeWei: number | string | BN
-    ): NonPayableTransactionObject<void>;
-
-    setDataProviderFeePercentage(
-      _feePercentageBIPS: number | string | BN
+    getDataProviderCurrentFeePercentage(
+      _dataProvider: string
     ): NonPayableTransactionObject<string>;
 
-    setInitialRewardData(): NonPayableTransactionObject<void>;
+    getDataProviderFeePercentage(
+      _dataProvider: string,
+      _rewardEpoch: number | string | BN
+    ): NonPayableTransactionObject<string>;
 
-    setNewFtsoRewardManager(
-      _newFtsoRewardManager: string
-    ): NonPayableTransactionObject<void>;
+    getDataProviderScheduledFeePercentageChanges(
+      _dataProvider: string
+    ): NonPayableTransactionObject<{
+      _feePercentageBIPS: string[];
+      _validFromEpoch: string[];
+      _fixed: boolean[];
+      0: string[];
+      1: string[];
+      2: boolean[];
+    }>;
 
-    supply(): NonPayableTransactionObject<string>;
+    getRewardEpochToExpireNext(): NonPayableTransactionObject<string>;
 
-    totalAwardedWei(): NonPayableTransactionObject<string>;
+    getTokenPoolSupplyData(): NonPayableTransactionObject<{
+      _lockedFundsWei: string;
+      _totalInflationAuthorizedWei: string;
+      _totalClaimedWei: string;
+      0: string;
+      1: string;
+      2: string;
+    }>;
 
-    totalBurnedWei(): NonPayableTransactionObject<string>;
+    feePercentageUpdateOffset(): NonPayableTransactionObject<string>;
 
-    totalClaimedWei(): NonPayableTransactionObject<string>;
+    defaultFeePercentage(): NonPayableTransactionObject<string>;
 
-    totalExpiredWei(): NonPayableTransactionObject<string>;
+    getTotals(): NonPayableTransactionObject<{
+      _totalAwardedWei: string;
+      _totalClaimedWei: string;
+      _totalExpiredWei: string;
+      _totalUnearnedWei: string;
+      _totalBurnedWei: string;
+      _totalInflationAuthorizedWei: string;
+      _totalInflationReceivedWei: string;
+      _totalSelfDestructReceivedWei: string;
+      _lastInflationAuthorizationReceivedTs: string;
+      _dailyAuthorizedInflation: string;
+      0: string;
+      1: string;
+      2: string;
+      3: string;
+      4: string;
+      5: string;
+      6: string;
+      7: string;
+      8: string;
+      9: string;
+    }>;
 
-    totalInflationAuthorizedWei(): NonPayableTransactionObject<string>;
+    claimExecutors(_rewardOwner: string): NonPayableTransactionObject<string[]>;
 
-    totalInflationReceivedWei(): NonPayableTransactionObject<string>;
+    allowedClaimRecipients(
+      _rewardOwner: string
+    ): NonPayableTransactionObject<string[]>;
 
-    totalSelfDestructReceivedWei(): NonPayableTransactionObject<string>;
+    getContractName(): NonPayableTransactionObject<string>;
 
-    totalUnearnedWei(): NonPayableTransactionObject<string>;
+    getRewardEpochVotePowerBlock(
+      _rewardEpoch: number | string | BN
+    ): NonPayableTransactionObject<string>;
 
-    transferGovernance(_governance: string): NonPayableTransactionObject<void>;
+    getCurrentRewardEpoch(): NonPayableTransactionObject<string>;
 
-    updateContractAddresses(
-      _contractNameHashes: (string | number[])[],
-      _contractAddresses: string[]
-    ): NonPayableTransactionObject<void>;
-
-    wNat(): NonPayableTransactionObject<string>;
+    getInitialRewardEpoch(): NonPayableTransactionObject<string>;
   };
   events: {
+    AllowedClaimRecipientsChanged(
+      cb?: Callback<AllowedClaimRecipientsChanged>
+    ): EventEmitter;
+    AllowedClaimRecipientsChanged(
+      options?: EventOptions,
+      cb?: Callback<AllowedClaimRecipientsChanged>
+    ): EventEmitter;
+
+    ClaimExecutorsChanged(cb?: Callback<ClaimExecutorsChanged>): EventEmitter;
+    ClaimExecutorsChanged(
+      options?: EventOptions,
+      cb?: Callback<ClaimExecutorsChanged>
+    ): EventEmitter;
+
     DailyAuthorizedInflationSet(
       cb?: Callback<DailyAuthorizedInflationSet>
     ): EventEmitter;
@@ -352,16 +431,26 @@ export interface FtsoRewardManager extends BaseContract {
       cb?: Callback<FeePercentageChanged>
     ): EventEmitter;
 
-    GovernanceProposed(cb?: Callback<GovernanceProposed>): EventEmitter;
-    GovernanceProposed(
+    GovernanceCallTimelocked(
+      cb?: Callback<GovernanceCallTimelocked>
+    ): EventEmitter;
+    GovernanceCallTimelocked(
       options?: EventOptions,
-      cb?: Callback<GovernanceProposed>
+      cb?: Callback<GovernanceCallTimelocked>
     ): EventEmitter;
 
-    GovernanceUpdated(cb?: Callback<GovernanceUpdated>): EventEmitter;
-    GovernanceUpdated(
+    GovernanceInitialised(cb?: Callback<GovernanceInitialised>): EventEmitter;
+    GovernanceInitialised(
       options?: EventOptions,
-      cb?: Callback<GovernanceUpdated>
+      cb?: Callback<GovernanceInitialised>
+    ): EventEmitter;
+
+    GovernedProductionModeEntered(
+      cb?: Callback<GovernedProductionModeEntered>
+    ): EventEmitter;
+    GovernedProductionModeEntered(
+      options?: EventOptions,
+      cb?: Callback<GovernedProductionModeEntered>
     ): EventEmitter;
 
     InflationReceived(cb?: Callback<InflationReceived>): EventEmitter;
@@ -374,6 +463,12 @@ export interface FtsoRewardManager extends BaseContract {
     RewardClaimed(
       options?: EventOptions,
       cb?: Callback<RewardClaimed>
+    ): EventEmitter;
+
+    RewardClaimsEnabled(cb?: Callback<RewardClaimsEnabled>): EventEmitter;
+    RewardClaimsEnabled(
+      options?: EventOptions,
+      cb?: Callback<RewardClaimsEnabled>
     ): EventEmitter;
 
     RewardClaimsExpired(cb?: Callback<RewardClaimsExpired>): EventEmitter;
@@ -394,6 +489,22 @@ export interface FtsoRewardManager extends BaseContract {
       cb?: Callback<RewardsDistributed>
     ): EventEmitter;
 
+    TimelockedGovernanceCallCanceled(
+      cb?: Callback<TimelockedGovernanceCallCanceled>
+    ): EventEmitter;
+    TimelockedGovernanceCallCanceled(
+      options?: EventOptions,
+      cb?: Callback<TimelockedGovernanceCallCanceled>
+    ): EventEmitter;
+
+    TimelockedGovernanceCallExecuted(
+      cb?: Callback<TimelockedGovernanceCallExecuted>
+    ): EventEmitter;
+    TimelockedGovernanceCallExecuted(
+      options?: EventOptions,
+      cb?: Callback<TimelockedGovernanceCallExecuted>
+    ): EventEmitter;
+
     UnearnedRewardsAccrued(cb?: Callback<UnearnedRewardsAccrued>): EventEmitter;
     UnearnedRewardsAccrued(
       options?: EventOptions,
@@ -402,6 +513,26 @@ export interface FtsoRewardManager extends BaseContract {
 
     allEvents(options?: EventOptions, cb?: Callback<EventLog>): EventEmitter;
   };
+
+  once(
+    event: "AllowedClaimRecipientsChanged",
+    cb: Callback<AllowedClaimRecipientsChanged>
+  ): void;
+  once(
+    event: "AllowedClaimRecipientsChanged",
+    options: EventOptions,
+    cb: Callback<AllowedClaimRecipientsChanged>
+  ): void;
+
+  once(
+    event: "ClaimExecutorsChanged",
+    cb: Callback<ClaimExecutorsChanged>
+  ): void;
+  once(
+    event: "ClaimExecutorsChanged",
+    options: EventOptions,
+    cb: Callback<ClaimExecutorsChanged>
+  ): void;
 
   once(
     event: "DailyAuthorizedInflationSet",
@@ -420,18 +551,34 @@ export interface FtsoRewardManager extends BaseContract {
     cb: Callback<FeePercentageChanged>
   ): void;
 
-  once(event: "GovernanceProposed", cb: Callback<GovernanceProposed>): void;
   once(
-    event: "GovernanceProposed",
+    event: "GovernanceCallTimelocked",
+    cb: Callback<GovernanceCallTimelocked>
+  ): void;
+  once(
+    event: "GovernanceCallTimelocked",
     options: EventOptions,
-    cb: Callback<GovernanceProposed>
+    cb: Callback<GovernanceCallTimelocked>
   ): void;
 
-  once(event: "GovernanceUpdated", cb: Callback<GovernanceUpdated>): void;
   once(
-    event: "GovernanceUpdated",
+    event: "GovernanceInitialised",
+    cb: Callback<GovernanceInitialised>
+  ): void;
+  once(
+    event: "GovernanceInitialised",
     options: EventOptions,
-    cb: Callback<GovernanceUpdated>
+    cb: Callback<GovernanceInitialised>
+  ): void;
+
+  once(
+    event: "GovernedProductionModeEntered",
+    cb: Callback<GovernedProductionModeEntered>
+  ): void;
+  once(
+    event: "GovernedProductionModeEntered",
+    options: EventOptions,
+    cb: Callback<GovernedProductionModeEntered>
   ): void;
 
   once(event: "InflationReceived", cb: Callback<InflationReceived>): void;
@@ -446,6 +593,13 @@ export interface FtsoRewardManager extends BaseContract {
     event: "RewardClaimed",
     options: EventOptions,
     cb: Callback<RewardClaimed>
+  ): void;
+
+  once(event: "RewardClaimsEnabled", cb: Callback<RewardClaimsEnabled>): void;
+  once(
+    event: "RewardClaimsEnabled",
+    options: EventOptions,
+    cb: Callback<RewardClaimsEnabled>
   ): void;
 
   once(event: "RewardClaimsExpired", cb: Callback<RewardClaimsExpired>): void;
@@ -467,6 +621,26 @@ export interface FtsoRewardManager extends BaseContract {
     event: "RewardsDistributed",
     options: EventOptions,
     cb: Callback<RewardsDistributed>
+  ): void;
+
+  once(
+    event: "TimelockedGovernanceCallCanceled",
+    cb: Callback<TimelockedGovernanceCallCanceled>
+  ): void;
+  once(
+    event: "TimelockedGovernanceCallCanceled",
+    options: EventOptions,
+    cb: Callback<TimelockedGovernanceCallCanceled>
+  ): void;
+
+  once(
+    event: "TimelockedGovernanceCallExecuted",
+    cb: Callback<TimelockedGovernanceCallExecuted>
+  ): void;
+  once(
+    event: "TimelockedGovernanceCallExecuted",
+    options: EventOptions,
+    cb: Callback<TimelockedGovernanceCallExecuted>
   ): void;
 
   once(

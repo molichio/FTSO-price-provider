@@ -1,19 +1,25 @@
-# Command you want to call: Wrap, Unwrap, ClaimRewards, SetFee
+# Command you want to call: Wrap, Unwrap, ClaimRewards, SetFee, SetAllowedClaimRecipients, SetClaimExecutors
 COMMAND=${1}
-
+ARGS=${*:2}
 if [[ "$COMMAND" == "Wrap" ]]
 then
-    node dist/methods/Wrap.js -a ${2}
+    node dist/methods/Wrap.js $ARGS
 elif [[ "$COMMAND" == "Unwrap" ]]
 then
-    node dist/methods/Unwrap.js -a ${2}
+    node dist/methods/Unwrap.js $ARGS
 elif [[ "$COMMAND" == "ClaimRewards" ]]
 then
-    node dist/methods/ClaimRewards.js -r ${2}
+    node dist/methods/ClaimRewards.js $ARGS
 elif [[ "$COMMAND" == "SetFee" ]]
 then
-    node dist/methods/SetFee.js -f ${2}
+    node methods/SetFee.ts $ARGS
+elif [[ "$COMMAND" == "SetAllowedClaimRecipients" ]]
+then
+    node methods/SetAllowedClaimRecipients.ts $ARGS
+elif [[ "$COMMAND" == "SetClaimExecutors" ]]
+then
+    node methods/SetClaimExecutors.ts $ARGS
 else
-  echo "Error. First argument of the call must be one of: Wrap, Unwrap, ClaimRewards or SetFee"
+  echo "Error. First argument of the call must be one of: Wrap, Unwrap, ClaimRewards, SetFee, SetAllowedClaimRecipients or SetClaimExecutors"
 fi
 
